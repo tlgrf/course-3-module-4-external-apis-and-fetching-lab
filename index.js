@@ -1,37 +1,75 @@
 // index.js
 
-// Step 1: Fetch Data from the API
-// - Create a function `fetchWeatherData(city)`
-// - Use fetch() to retrieve data from the OpenWeather API
-// - Handle the API response and parse the JSON
-// - Log the data to the console for testing
+// Step 1: Fetch weather data from OpenWeatherMap
+async function fetchWeatherData(cityName) {
+  const apiKey = "696cc2631eecff44a815dc6df7032ace";
+  const response = await fetch(
+    `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${apiKey}`
+  );
+  if (!response.ok) {
+    throw new Error("City not found");
+  }
+  return response.json();
+}
 
-// Step 2: Display Weather Data on the Page
-// - Create a function `displayWeather(data)`
-// - Dynamically update the DOM with weather details (e.g., temperature, humidity, weather description)
-// - Ensure the function can handle the data format provided by the API
+// Step 2: Show errors
+function displayError(message) {
+  const error = document.getElementById("error-message");
+  if (!error) return;
+  error.textContent = message;
+  error.classList.remove("hidden");
+}
 
-// Step 3: Handle User Input
-// - Add an event listener to the button to capture user input
-// - Retrieve the value from the input field
-// - Call `fetchWeatherData(city)` with the user-provided city name
+// Step 3: Display the weather
+function displayWeather(data) {
+  const weatherDiv = document.getElementById("weather-display");
+  if (!weatherDiv) return;
 
-// Step 4: Implement Error Handling
-// - Create a function `displayError(message)`
-// - Handle invalid city names or network issues
-// - Dynamically display error messages in a dedicated section of the page
+  const name        = data.name;
+  const celsius     = data.main.temp - 273.15;
+  const tempStr     = `${celsius.toFixed(0)}°C`;
+  const humidityStr = `${data.main.humidity}%`;
+  const description = data.weather[0].description;
 
-// Step 5: Optimize Code for Maintainability
-// - Refactor repetitive code into reusable functions
-// - Use async/await for better readability and to handle asynchronous operations
-// - Ensure all reusable functions are modular and clearly named
+  weatherDiv.innerHTML = `
+    <h2>Weather in ${name}</h2>
+    <p>Temperature: ${tempStr}</p>
+    <p>Humidity: ${humidityStr}</p>
+    <p>Conditions: ${description}</p>
+  `;
+}
 
-// BONUS: Loading Indicator
-// - Optionally, add a loading spinner or text while the API request is in progress
+// Browser event binding (guarded so it doesn’t run in Jest)
+if (typeof document !== 'undefined') {
+  const fetchBtn = document.getElementById("fetch-weather");
+  if (fetchBtn) {
+    fetchBtn.addEventListener("click", async () => {
+      const cityInput = document.getElementById("city-input");
+      const cityName  = cityInput.value.trim();
+      if (!cityName) {
+        displayError("Please enter a city.");
+        return;
+      }
 
-// BONUS: Additional Features
-// - Explore adding more features, such as displaying additional weather details (e.g., wind speed, sunrise/sunset)
-// - Handle edge cases, such as empty input or API rate limits
+      // Clear any previous state
+      const weather = document.getElementById("weather-display");
+      const error   = document.getElementById("error-message");
+      if (weather) weather.innerHTML = "";
+      if (error)   error.classList.add("hidden");
 
-// Event Listener for Fetch Button
-// - Attach the main event listener to the button to start the process
+      try {
+        const data = await fetchWeatherData(cityName);
+        displayWeather(data);
+      } catch (err) {
+        displayError(err.message);
+      }
+    });
+  }
+}
+
+// Exports for Jest
+module.exports = {
+  fetchWeatherData,
+  displayWeather,
+  displayError,
+};
